@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Video Translator",
+  title: "Tomtext",
   description: "Translate YouTube videos with AI",
 };
 

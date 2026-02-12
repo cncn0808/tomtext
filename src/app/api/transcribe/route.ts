@@ -1,50 +1,122 @@
+import { generateContent } from "@/lib/gemini";
+import { execa } from "execa";
+import { createReadStream, unlink } from "fs-extra";
 import { NextRequest, NextResponse } from "next/server";
+import { tmpdir } from "os";
+import path from "path";
+import { prisma } from "@/lib/prisma";
+import { v4 as uuidv4 } from "uuid";
 
-export const runtime = "nodejs";
-
-export async function GET(req: NextRequest) {
-  const AWS_TRANSCRIBE_API = process.env.AWS_TRANSCRIBE_API;
-  try {
-    const sp = req.nextUrl.searchParams;
-    const audioUrl = sp.get("audio_url");
-
-    if (!audioUrl) {
-      return NextResponse.json({ error: "Missing Audio URL" }, { status: 400 });
-    }
-
-    const qs = `audio_url=${encodeURIComponent(audioUrl)}`;
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 60000); // transcribe may take longer
-    const awsUrl = `${AWS_TRANSCRIBE_API}?${qs}`;
-
-    const res = await fetch(awsUrl, {
-      method: "GET",
-      signal: controller.signal,
+//  Helper to convert stream to base64 buffer
+async function streamToBase64(
+  filePath: string
+): Promise<{ base64: string; mimeType: string }> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    const stream = createReadStream(filePath);
+    stream.on("data", (chunk) => {
+      if (Buffer.isBuffer(chunk)) {
+        chunks.push(chunk);
+      }
     });
-    clearTimeout(timeout);
+    stream.on("error", reject);
+    stream.on("end", () => {
+      const buffer = Buffer.concat(chunks);
+      resolve({ base64: buffer.toString("base64"), mimeType: "audio/mpeg" });
+    });
+  });
+}
 
-    const text = await res.text();
-    let data: any;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = { raw: text };
-    }
+export async function POST(req: NextRequest) {
+  const tempFile = path.join(tmpdir(), `${uuidv4()}.mp3`);
 
-    if (!res.ok) {
+
+  try {
+    const { youtubeUrl } = await req.json();
+
+
+    if (!youtubeUrl || !youtubeUrl.includes("youtube.com")) {
       return NextResponse.json(
-        { error: "Upstream error from transcribe", status: res.status, data },
-        { status: 502 }
+        { error: "Invalid or missing YouTube URL" },
+        { status: 400 }
       );
     }
 
-    return NextResponse.json(data, { status: 200 });
-  } catch (err: any) {
-    const aborted = err?.name === "AbortError";
+    // Check cache
+    console.log('Check cache')
+    const existingVideo = await prisma.video.findUnique({
+      where: { url: youtubeUrl },
+    });
+    console.log('Check cache finished: ', existingVideo)
+    if (existingVideo && existingVideo.transcription) {
+      console.log('DEBUG: exist item ', existingVideo)
+      return NextResponse.json({ transcription: existingVideo.transcription });
+    }
+
+    console.log("Downloading audio with yt-dlp to:", tempFile);
+
+    // 1. Get the paths to the binaries.
+
+    const ytDlpPath = "yt-dlp";
+
+    // 2. Define the command-line arguments.
+    const args = [
+      youtubeUrl,
+      "--extract-audio",
+      "--audio-format",
+      "mp3",
+      "--output",
+      tempFile,
+      "--quiet",
+    ];
+
+    // 3. Execute the command.
+    await execa(ytDlpPath, args);
+
+    const { base64, mimeType } = await streamToBase64(tempFile);
+    const audioPart = { inlineData: { data: base64, mimeType } };
+    const prompt =
+      "Provide a detailed, accurate transcription of this audio. Return ONLY the plain text of what is said. Do NOT include timestamps, speaker labels, or any other metadata. Do NOT format it as a script.";
+
+    console.log("Sending audio to Gemini API...");
+    const transcription = await generateContent({
+      prompt,
+      audio: {
+        data: audioPart.inlineData.data,
+        mimeType: audioPart.inlineData.mimeType,
+      },
+    });
+
+    if (!transcription) {
+      return NextResponse.json(
+        { error: "Failed to transcribe audio." },
+        { status: 500 }
+      );
+    }
+
+    // Save to cache
+    await prisma.video.create({
+      data: {
+        url: youtubeUrl,
+        transcription: transcription,
+      },
+    });
+
+    return NextResponse.json({ transcription });
+  } catch (error) {
+    console.error("Error during transcription:", error);
+
     return NextResponse.json(
-      { error: aborted ? "Transcribe timed out" : String(err) },
-      { status: aborted ? 504 : 500 }
+      {
+        error:
+          "Server error: " +
+          (error instanceof Error ? error.message : "Unknown"),
+      },
+      { status: 500 }
     );
+  } finally {
+    unlink(tempFile).catch((err) => {
+      console.error("Failed to delete temporary file:", tempFile, err);
+    });
   }
 }

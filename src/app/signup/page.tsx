@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { awsDevClient } from "../service/axios";
+// import { awsDevClient } from "../service/axios";
 import { ApiConstants } from "../utils/ApiConstants";
 
 
@@ -46,21 +46,21 @@ export default function SignupPage() {
       // Client-side hash to satisfy current Lambda contract
       const password_hash = await sha256Base64(pw);
 
-      const res = await awsDevClient.post(
-        ApiConstants.SIGNUP,      // should be "/user"
-        { username: u, email: em, password_hash },
-        { headers: { "Content-Type": "application/json" } }
-      );
 
-      // 201 created → go to login (or auto-login if you add that later)
+      // TODO: Implement new signup logic
+      console.log("Signup logic needs replacement (AWS removed)");
+      const res = { status: 501, data: { message: "Not Implemented" } }; // Mock response
+
+      // const res = await awsDevClient.post(
+      //   ApiConstants.SIGNUP,
+      //   { username: u, email: em, password_hash },
+      //   { headers: { "Content-Type": "application/json" } }
+      // );
+
       if (res.status === 201) {
         router.push("/login");
       } else {
-        // Handle unexpected statuses gracefully
-        const msg =
-          (res.data && (res.data.message || res.data.error)) ||
-          `Unexpected response (${res.status}).`;
-        setError(msg);
+        setError("Signup not implemented yet.");
       }
     } catch (err: any) {
       const msg =

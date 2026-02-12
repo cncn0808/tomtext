@@ -40,9 +40,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# terraform
-terraform/*.tfstate*
-terraform/.terraform*
+
 
 archives
 .vscode/launch.json
+
+/src/generated/prisma
+
+# sqlite
+*.db

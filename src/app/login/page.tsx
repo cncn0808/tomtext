@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { awsDevClient } from "../service/axios";
+// import { awsDevClient } from "../service/axios";
 import { ApiConstants } from "../utils/ApiConstants";
 
 // SHA-256 -> base64 (to match your Lambda’s password_hash)
@@ -36,6 +36,10 @@ export default function LoginPage() {
     try {
       const password_hash = await sha256Base64(password);
       const body = { username, password_hash };
+      console.log("Login logic needs replacement (AWS removed)");
+      const res = { status: 501, data: { message: "Not Implemented" } }; // Mock
+
+      /*
       const res = await awsDevClient.post(
         ApiConstants.LOGIN, 
         body,
@@ -55,6 +59,8 @@ export default function LoginPage() {
       awsDevClient.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
       router.push("/"); // redirect to main app
+      */
+      setError("Login not implemented yet.");
     } catch (err: any) {
       const msg =
         err?.response?.data?.message ||

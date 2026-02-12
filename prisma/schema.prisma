@@ -1,0 +1,16 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/client"
+}
+
+model Video {
+  id            String   @id @default(uuid())
+  url           String   @unique
+  transcription String?
+  translation   String?
+  createdAt     DateTime @default(now())
+}

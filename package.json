@@ -1,21 +1,30 @@
 {
-  "name": "ai-translator",
+  "name": "tomtext",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "tf:apply": "cd terraform && terraform apply -auto-approve"
+    "lint": "next lint"
   },
   "dependencies": {
     "@google/genai": "^1.11.0",
     "@heroicons/react": "^2.2.0",
+    "@libsql/client": "^0.17.0",
+    "@prisma/adapter-better-sqlite3": "^7.4.0",
+    "@prisma/adapter-libsql": "^7.4.0",
+    "@prisma/client": "^7.4.0",
+    "@types/better-sqlite3": "^7.6.13",
     "axios": "^1.11.0",
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.2.4",
+    "execa": "^9.6.1",
+    "fs-extra": "^11.3.3",
     "next": "15.4.3",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "uuid": "^13.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -27,6 +36,7 @@
     "@types/uuid": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.4.3",
+    "prisma": "^7.4.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

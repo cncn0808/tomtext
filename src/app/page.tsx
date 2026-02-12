@@ -5,13 +5,14 @@ import {
   ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import { Bars3Icon, BoltIcon, PlayCircleIcon } from "@heroicons/react/24/solid";
-import axios from "axios";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import Spinner from "./components/Spinner";
 
-import { ApiConstants } from "./utils/ApiConstants";
-import { axiosClient } from "./service/axios";
+
+
+import { transcribeVideo } from "./service/transcribe";
+import { translateText } from "./service/translate";
 
 const HISTORY_KEY = "avt_history";
 
@@ -71,32 +72,27 @@ export default function Page() {
     setVietnameseTranslation("");
 
     try {
-      // 1) Extract: YouTube URL -> MP3 in S3
-      const extractResp = await axiosClient.get(ApiConstants.AUDIO_EXTRACT, {
-        params: { url: youtubeUrl },
-      });
+      // 1. Transcribe
+      const { transcription, error: apiError } = await transcribeVideo(youtubeUrl);
 
-      const { audio_url } = extractResp.data || {};
-      if (!audio_url)
-        throw new Error("Unexpected extract response. Missing audio URL.");
-
-      // 2) Transcribe + (optionally) translate
-      const transcribeResp = await axios.get(ApiConstants.AI_TRANSCRIPTION, {
-        params: { audio_url },
-      });
-
-      const d = transcribeResp.data || {};
-      const transcription =
-        d.transcription ?? d.englishTranscription ?? d.english ?? "";
-      const translation =
-        d.translation ?? d.vietnameseTranslation ?? d.vietnamese ?? "";
-
-      if (!transcription)
-        throw new Error("Received an empty transcription from the server.");
+      if (apiError || !transcription) {
+        throw new Error(apiError || "Failed to get transcription");
+      }
 
       setEnglishTranscription(transcription);
-      setVietnameseTranslation(translation || "");
-    } catch (err) {
+
+      // 2. Translate
+      const { translation, error: translateError } = await translateText(transcription);
+
+      if (translateError) {
+        // We don't throw here to avoid wiping out the successful transcription
+        console.error("Translation error:", translateError);
+        setError(translateError);
+      } else if (translation) {
+        setVietnameseTranslation(translation);
+      }
+
+    } catch (err: any) {
       console.error(err);
       setError(
         err instanceof Error ? err.message : "An unknown error occurred."
@@ -143,7 +139,7 @@ export default function Page() {
               {history.length > 0 && (
                 <button
                   className="text-xs px-2 py-1 rounded border border-slate-700 hover:bg-slate-800 text-slate-300"
-                  onClick={() => {}}
+                  onClick={() => { }}
                   title="Clear history"
                 >
                   Clear
@@ -167,9 +163,8 @@ export default function Page() {
                 <li key={item.id}>
                   <button
                     onClick={() => handleOpenHistory(item)}
-                    className={`w-full text-left rounded-lg px-3 py-2 hover:bg-slate-800/70 transition group ${
-                      sidebarOpen ? "" : "flex items-center justify-center"
-                    }`}
+                    className={`w-full text-left rounded-lg px-3 py-2 hover:bg-slate-800/70 transition group ${sidebarOpen ? "" : "flex items-center justify-center"
+                      }`}
                     title={sidebarOpen ? "" : item.title}
                   >
                     {sidebarOpen ? (
@@ -200,7 +195,7 @@ export default function Page() {
           <div className="flex items-center gap-2">
             <DocumentTextIcon className="size-6 text-blue-500" />
             <span className="font-semibold text-slate-200">
-              AI Video Translator
+              Tomtext
             </span>
           </div>
           <div className="flex items-center justify-between gap-2 ">
@@ -259,7 +254,7 @@ export default function Page() {
                   ) : (
                     <>
                       <BoltIcon className="w-5 h-5" />
-                      <span>Translate</span>
+                      <span>Transcribe</span>
                     </>
                   )}
                 </button>
@@ -281,7 +276,7 @@ export default function Page() {
                   <h2 className="text-base font-semibold text-slate-300 mb-3">
                     Original Transcription (English)
                   </h2>
-                  <div className="h-64 overflow-y-auto pr-2 text-slate-300 leading-relaxed space-y-4">
+                  <div className="min-h-[16rem] pr-2 text-slate-300 leading-relaxed space-y-4">
                     {isLoading ? (
                       <div className="text-slate-400">
                         Generating transcription...
@@ -299,7 +294,7 @@ export default function Page() {
                   <h2 className="text-base font-semibold text-slate-300 mb-3">
                     Translation (Vietnamese)
                   </h2>
-                  <div className="h-64 overflow-y-auto pr-2 text-slate-300 leading-relaxed space-y-4">
+                  <div className="min-h-[16rem] pr-2 text-slate-300 leading-relaxed space-y-4">
                     {isLoading ? (
                       <div className="text-slate-400">Đang tạo bản dịch...</div>
                     ) : (
