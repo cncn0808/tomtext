@@ -4,8 +4,10 @@ import { createClient } from "@libsql/client";
 
 const globalForPrisma = global as unknown as { prisma: PrismaClient };
 
+const url = process.env.DATABASE_URL ? process.env.DATABASE_URL : "file:./dev.db";
+
 const libsql = createClient({
-    url: process.env.DATABASE_URL || "file:./dev.db",
+    url,
     authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
