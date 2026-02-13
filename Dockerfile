@@ -30,7 +30,6 @@ RUN npm run build
 # Production image, copy all the files and run next
 FROM base AS runner
 RUN apk add --no-cache yt-dlp ffmpeg python3
-RUN npm install -g prisma
 WORKDIR /app
 
 ENV NODE_ENV production
@@ -51,11 +50,11 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Install prisma explicitly to ensure it is available at runtime
+RUN npm install prisma
+
 # Manually copy the native binary for LibSQL
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@libsql/linux-x64-musl ./node_modules/@libsql/linux-x64-musl
-
-# Manually copy prisma package to prevent standalone optimization from stripping it
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
 
 # Initialize the database file in the runner
 COPY --from=builder /app/prisma ./prisma
