@@ -52,6 +52,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Manually copy the native binary for LibSQL
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@libsql/linux-x64-musl ./node_modules/@libsql/linux-x64-musl
+COPY --from=builder --chown=nextjs:nodejs /app/dev.db ./dev.db
 
 USER nextjs
 
