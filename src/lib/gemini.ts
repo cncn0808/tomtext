@@ -1,12 +1,13 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-    throw new Error("Missing GEMINI_API_KEY in environment variables.");
-}
-
-const ai = new GoogleGenAI({ apiKey });
+const getAiClient = () => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error("Missing GEMINI_API_KEY in environment variables.");
+    }
+    return new GoogleGenAI({ apiKey });
+};
 
 interface GenerateOptions {
     prompt: string;
@@ -17,6 +18,7 @@ interface GenerateOptions {
 }
 
 export async function generateContent(options: GenerateOptions): Promise<string> {
+    const ai = getAiClient();
     const { prompt, audio } = options;
 
     const parts: any[] = [{ text: prompt }];
