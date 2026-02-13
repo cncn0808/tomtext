@@ -55,6 +55,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@libsql/linux-x64-mu
 
 # Initialize the database file in the runner
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/prisma.config.ts ./prisma.config.ts
+
+# Set DATABASE_URL for runtime
+ENV DATABASE_URL="file:./dev.db"
+
 # We will create the DB at runtime since copying a pre-made one is tricky with permissions/existence
 
 
@@ -68,4 +73,4 @@ ENV HOSTNAME "0.0.0.0"
 
 # Ensure npx is available or use the binary from node_modules if needed, but 'npx' is fine.
 # We set the database URL strictly for this command to ensure it writes to the file we want, though env var should handle it.
-CMD DATABASE_URL="file:./dev.db" npx prisma db push && node server.js
+CMD npx prisma db push --skip-generate && node server.js
