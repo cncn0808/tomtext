@@ -112,7 +112,6 @@ export default function Page() {
 
   // Layout tweaks
   const sidebarWidth = sidebarOpen ? "w-72" : "w-14";
-  ``;
 
   return (
     <div className="min-h-screen bg-slate-900 text-white flex">
