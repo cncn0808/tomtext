@@ -52,7 +52,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Manually copy the native binary for LibSQL
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@libsql/linux-x64-musl ./node_modules/@libsql/linux-x64-musl
-COPY --from=builder --chown=nextjs:nodejs /app/dev.db ./dev.db
+
+# Initialize the database file in the runner
+COPY --from=builder /app/prisma ./prisma
+# We will create the DB at runtime since copying a pre-made one is tricky with permissions/existence
+
 
 USER nextjs
 
@@ -62,4 +66,6 @@ ENV PORT 3000
 # set hostname to localhost
 ENV HOSTNAME "0.0.0.0"
 
-CMD ["node", "server.js"]
+# Ensure npx is available or use the binary from node_modules if needed, but 'npx' is fine.
+# We set the database URL strictly for this command to ensure it writes to the file we want, though env var should handle it.
+CMD npx prisma db push && node server.js
