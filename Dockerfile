@@ -1,4 +1,3 @@
-
 FROM node:20-alpine AS base
 
 # Install dependencies only when needed
@@ -23,6 +22,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED 1
 
 # Generate Prisma Client
+ENV DATABASE_URL="file:./dev.db"
 RUN npx prisma generate
 
 RUN npm run build
@@ -68,4 +68,4 @@ ENV HOSTNAME "0.0.0.0"
 
 # Ensure npx is available or use the binary from node_modules if needed, but 'npx' is fine.
 # We set the database URL strictly for this command to ensure it writes to the file we want, though env var should handle it.
-CMD DATABASE_URL="file:./dev.db" npx prisma db push && node server.js
+CMD npx prisma db push && node server.js
