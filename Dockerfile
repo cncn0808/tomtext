@@ -66,6 +66,8 @@ ENV DATABASE_URL="file:./dev.db"
 # We will create the DB at runtime since copying a pre-made one is tricky with permissions/existence
 
 
+
+RUN chown nextjs:nodejs .
 USER nextjs
 
 EXPOSE 3000
