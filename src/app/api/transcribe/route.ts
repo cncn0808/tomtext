@@ -1,6 +1,6 @@
 import { generateContent } from "@/lib/gemini";
 import { execa } from "execa";
-import { createReadStream, unlink, existsSync } from "fs-extra";
+import { createReadStream, unlink, existsSync, copyFileSync } from "fs-extra";
 import { NextRequest, NextResponse } from "next/server";
 import { tmpdir } from "os";
 import path from "path";
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
         // fs-extra has copySync. Let's use that or standard fs methods.
         // Since we only imported specific methods, let's just use a simple read/write with fs-extra or import fs.
         // Actually, we can just use `require('fs').copyFileSync`.
-        require('fs').copyFileSync(cookiesSource, tempCookies);
+        copyFileSync(cookiesSource, tempCookies);
 
         console.log(`Copied cookies from ${cookiesSource} to ${tempCookies}`);
         args.push("--cookies", tempCookies);
