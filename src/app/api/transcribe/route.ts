@@ -1,6 +1,6 @@
 import { generateContent } from "@/lib/gemini";
 import { execa } from "execa";
-import { createReadStream, unlink } from "fs-extra";
+import { createReadStream, unlink, existsSync } from "fs-extra";
 import { NextRequest, NextResponse } from "next/server";
 import { tmpdir } from "os";
 import path from "path";
@@ -69,6 +69,15 @@ export async function POST(req: NextRequest) {
       tempFile,
       "--quiet",
     ];
+
+    // Check for cookies file to bypass 429/Sign-in errors
+    const cookiesPath = process.env.COOKIES_PATH || "/etc/secrets/cookies.txt";
+    if (existsSync(cookiesPath)) {
+      console.log(`Using cookies from: ${cookiesPath}`);
+      args.push("--cookies", cookiesPath);
+    } else {
+      console.log(`Cookies file not found at ${cookiesPath}, proceeding without cookies.`);
+    }
 
     // 3. Execute the command.
     await execa(ytDlpPath, args);
