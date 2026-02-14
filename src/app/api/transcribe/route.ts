@@ -29,7 +29,7 @@ async function streamToBase64(
 
 export async function POST(req: NextRequest) {
   const tempFile = path.join(tmpdir(), `${uuidv4()}.mp3`);
-
+  let tempCookies: string | undefined;
 
   try {
     const { youtubeUrl } = await req.json();
@@ -71,12 +71,27 @@ export async function POST(req: NextRequest) {
     ];
 
     // Check for cookies file to bypass 429/Sign-in errors
-    const cookiesPath = process.env.COOKIES_PATH || "/etc/secrets/cookies.txt";
-    if (existsSync(cookiesPath)) {
-      console.log(`Using cookies from: ${cookiesPath}`);
-      args.push("--cookies", cookiesPath);
+    const cookiesSource = process.env.COOKIES_PATH || "/etc/secrets/cookies.txt";
+    tempCookies = path.join(tmpdir(), `cookies-${uuidv4()}.txt`);
+    let cookiesUsed = false;
+
+    if (existsSync(cookiesSource)) {
+      try {
+        // Copy cookies to a writable location to avoid "Read-only file system" error
+        // Need to import copyFileSync or use createReadStream/writeStream if fs-extra doesn't export copyFileSync (it mimics fs, so it should have copySync or copy)
+        // fs-extra has copySync. Let's use that or standard fs methods.
+        // Since we only imported specific methods, let's just use a simple read/write with fs-extra or import fs.
+        // Actually, we can just use `require('fs').copyFileSync`.
+        require('fs').copyFileSync(cookiesSource, tempCookies);
+
+        console.log(`Copied cookies from ${cookiesSource} to ${tempCookies}`);
+        args.push("--cookies", tempCookies);
+        cookiesUsed = true;
+      } catch (err) {
+        console.error("Failed to copy cookies file:", err);
+      }
     } else {
-      console.log(`Cookies file not found at ${cookiesPath}, proceeding without cookies.`);
+      console.log(`Cookies file not found at ${cookiesSource}, proceeding without cookies.`);
     }
 
     // 3. Execute the command.
@@ -127,5 +142,11 @@ export async function POST(req: NextRequest) {
     unlink(tempFile).catch((err) => {
       console.error("Failed to delete temporary file:", tempFile, err);
     });
+
+    if (typeof tempCookies !== 'undefined' && existsSync(tempCookies)) {
+      unlink(tempCookies).catch((err) => {
+        console.error("Failed to delete temporary cookies file:", tempCookies, err);
+      });
+    }
   }
 }
