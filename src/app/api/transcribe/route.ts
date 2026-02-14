@@ -73,7 +73,6 @@ export async function POST(req: NextRequest) {
     // Check for cookies file to bypass 429/Sign-in errors
     const cookiesSource = process.env.COOKIES_PATH || "/etc/secrets/cookies.txt";
     tempCookies = path.join(tmpdir(), `cookies-${uuidv4()}.txt`);
-    let cookiesUsed = false;
 
     if (existsSync(cookiesSource)) {
       try {
@@ -86,7 +85,6 @@ export async function POST(req: NextRequest) {
 
         console.log(`Copied cookies from ${cookiesSource} to ${tempCookies}`);
         args.push("--cookies", tempCookies);
-        cookiesUsed = true;
       } catch (err) {
         console.error("Failed to copy cookies file:", err);
       }
